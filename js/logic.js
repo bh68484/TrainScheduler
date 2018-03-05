@@ -11,12 +11,7 @@ firebase.initializeApp(config);
 
 // Create a variable to reference the database
 var database = firebase.database();
-
-// Initial Values
-var name = "";
-var destination = "";
-var initialTrainTime = 0;
-var frequency = 0;
+var initialTrainTime = "";
 
 // Capture Button Click
 $("#submit").on("click", function() {
@@ -26,16 +21,16 @@ $("#submit").on("click", function() {
   // YOUR TASK!!!
   // Code in the logic for storing and retrieving the most recent user.
   // Don't forget to provide initial data to your Firebase database.
-  name = $("#trainName")
+  var name = $("#trainName")
     .val()
     .trim();
-  destination = $("#destination")
+  var destination = $("#destination")
     .val()
     .trim();
-  initialTrainTime = $("#firstTrainTime")
+  var initialTrainTime = $("#firstTrainTime")
     .val()
     .trim();
-  frequency = $("#frequency")
+  var frequency = $("#frequency")
     .val()
     .trim();
 
@@ -47,16 +42,71 @@ $("#submit").on("click", function() {
   });
 });
 
-// Firebase watcher + initial loader HINT: .on("value")
+// Firebase watcher + initial loader HINT: This code behaves similarly to .on("value")
 database.ref().on(
-  "value",
-  function(snapshot) {
+  "child_added",
+  function(childSnapshot) {
     // Log everything that's coming out of snapshot
-    console.log(snapshot.val());
-    console.log(snapshot.val().name);
-    console.log(snapshot.val().destination);
-    console.log(snapshot.val().initialTrainTime);
-    console.log(snapshot.val().frequency);
+    var newTrainName = childSnapshot.val().name;
+    var newLocationDestination = childSnapshot.val().destination;
+    var newFirstTrainTime = childSnapshot.val().initialTrainTime;
+    var newFrequencyTime = childSnapshot.val().frequency;
+
+    console.log(childSnapshot.val().name);
+    console.log(childSnapshot.val().destination);
+    console.log(childSnapshot.val().initialTrainTime);
+    console.log(childSnapshot.val().frequency);
+
+    // First Time (pushed back 1 year to make sure it comes before current time)
+    var startTimeConverted = moment(newFirstTrainTime, "hh:mm").subtract(
+      1,
+      "years"
+    );
+    console.log(startTimeConverted);
+    // Current Time
+    var currentTime = moment();
+    console.log(currentTime);
+
+    // Difference between the times
+    var diffTime = moment().diff(moment(startTimeConverted), "minutes");
+    console.log("Diff between the times " + diffTime);
+
+    // Time apart
+    var tRemainder = diffTime % newFrequencyTime;
+    console.log("Time Remaining " + tRemainder);
+
+    // Minutes Until Train arrives
+    var tMinutesTillTrain = newFrequencyTime - tRemainder;
+    console.log("Time Until Next Train " + tMinutesTillTrain);
+
+    // Next Train
+    var nextTrain = moment().add(tMinutesTillTrain, "minutes");
+    console.log("Next Train " + nextTrain);
+    var catchTrain = moment(nextTrain).format("HH:mm");
+    console.log("Next Train Time " + catchTrain);
+
+    var snap = childSnapshot.val();
+    var tableRef = $("#trainSchedule");
+    var newRow = $("<tr>");
+    var nameDiv = $("<td>");
+    nameDiv.append(snap.name);
+    var destinationDiv = $("<td>");
+    destinationDiv.append(snap.destination);
+    var frequencyDiv = $("<td>");
+    frequencyDiv.append(snap.frequency);
+    var arrivalDiv = $("<td>");
+    arrivalDiv.append(catchTrain);
+    var minutesAwayDiv = $("<td>");
+    minutesAwayDiv.append(tMinutesTillTrain);
+    newRow.append(
+      nameDiv,
+      destinationDiv,
+      frequencyDiv,
+      arrivalDiv,
+      minutesAwayDiv
+    );
+    tableRef.append(newRow);
+
     // Handle the errors
   },
   function(errorObject) {
